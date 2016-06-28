@@ -1,0 +1,46 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
+
+    defaultConfig {
+        applicationId "com.example.joanna.sunshine.app"
+        minSdkVersion 10
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+        // Enabling multidex support.
+//        multiDexEnabled true
+    }
+//    productFlavors {
+//        // Define separate dev and prod product flavors.
+//        dev {
+//            // dev utilizes minSDKVersion = 21 to allow the Android gradle plugin
+//            // to pre-dex each module and produce an APK that can be tested on
+//            // Android Lollipop without time consuming dex merging processes.
+//            minSdkVersion 21
+//        }
+//        prod {
+//            // The actual minSdkVersion for the application.
+//            minSdkVersion 10
+//        }
+//    }
+    buildTypes {
+        release {
+            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildTypes.each {
+        it.buildConfigField 'String', 'OPEN_WEATHER_MAP_API_KEY', "\"\""
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.4.0'
+    compile 'com.android.support:design:23.4.0'
+//    compile 'com.android.support:multidex:1.0.0'
+}
