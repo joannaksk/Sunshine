@@ -47,6 +47,10 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.joanna.sunshine.app.MainActivity" />
         </activity>
+        <!--Sunshine Service-->
+        <service android:name=".service.SunshineService">
+
+        </service>
     </application>
 
 </manifest>

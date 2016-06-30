@@ -63,8 +63,8 @@ public class ForecastAdapter extends CursorAdapter {
      */
     private String formatHighLows(double high, double low) {
         boolean isMetric = Utility.isMetric(mContext);
-        String highLowStr = Utility.formatTemperature(mContext, high, isMetric) + "/" + Utility.formatTemperature(mContext, low, isMetric);
-        return highLowStr;
+        return Utility.formatTemperature(mContext, high, isMetric) + "/" + Utility.formatTemperature(mContext, low, isMetric);
+
     }
 
     /*
@@ -114,8 +114,7 @@ public class ForecastAdapter extends CursorAdapter {
         {
             layoutId = R.layout.list_item_forecast;
         }
-        View view =  LayoutInflater.from(context).inflate(layoutId, parent, false);
-        return view;
+        return LayoutInflater.from(context).inflate(layoutId, parent, false);
     }
 
     /*
@@ -154,6 +153,9 @@ public class ForecastAdapter extends CursorAdapter {
         String weatherDesc =  cursor.getString(ForecastFragment.COL_WEATHER_DESC);
 //        TextView weatherView = (TextView) view.findViewById(R.id.list_item_forecast_textview);
         viewHolder.descriptionView.setText(weatherDesc);
+
+        // Set the Content Description for icons so Talkback can read it out.
+        viewHolder.iconView.setContentDescription(weatherDesc);
 
         // Read user preference for metric or imperial temperature units
         boolean isMetric = Utility.isMetric(context);

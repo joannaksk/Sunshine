@@ -246,6 +246,10 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         mDescriptionView.setText(weatherDescription);
 
 
+        // Set the Content Description for icons so Talkback can read it out.
+        mIconView.setContentDescription(weatherDescription);
+
+
         mHighTempView.setText(high);
         mLowTempView.setText(low);
 
@@ -272,8 +276,7 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         Uri uri = mUri;
         if (null != uri) {
             long date = WeatherContract.WeatherEntry.getDateFromUri(uri);
-            Uri updatedUri = WeatherContract.WeatherEntry.buildWeatherLocationWithDate(newLocation, date);
-            mUri = updatedUri;
+            mUri = WeatherContract.WeatherEntry.buildWeatherLocationWithDate(newLocation, date);
             getLoaderManager().restartLoader(WEATHER_LOADER, null, this);
         }
     }

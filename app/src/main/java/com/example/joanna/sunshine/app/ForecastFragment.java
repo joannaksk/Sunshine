@@ -1,5 +1,6 @@
 package com.example.joanna.sunshine.app;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
@@ -22,6 +23,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import com.example.joanna.sunshine.app.data.WeatherContract;
+import com.example.joanna.sunshine.app.service.SunshineService;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -209,8 +211,14 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String location = prefs.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
 //        FetchWeatherTask fetcher = new FetchWeatherTask(getActivity(), mForecastAdapter);
-        FetchWeatherTask fetcher = new FetchWeatherTask(getActivity());
-        fetcher.execute(location);
+        // No Longer using an AsyncTask
+//        FetchWeatherTask fetcher = new FetchWeatherTask(getActivity());
+//        fetcher.execute(location);
+        // Now Using a Service.
+        Intent intent = new Intent(getActivity(), SunshineService.class);
+        intent.putExtra(SunshineService.LOCATION_QUERY_EXTRA,
+                Utility.getPreferredLocation(getActivity()));
+        getActivity().startActivity(intent);
     }
 
     // Loader Callback Methods
