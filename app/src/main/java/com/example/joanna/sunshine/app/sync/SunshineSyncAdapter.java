@@ -1,17 +1,24 @@
-package com.example.joanna.sunshine.app.service;
+package com.example.joanna.sunshine.app.sync;
 
-import android.app.IntentService;
-import android.content.BroadcastReceiver;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.AbstractThreadedSyncAdapter;
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
+import android.content.SyncRequest;
+import android.content.SyncResult;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
 import android.text.format.Time;
 import android.util.Log;
 
 import com.example.joanna.sunshine.app.BuildConfig;
+import com.example.joanna.sunshine.app.R;
 import com.example.joanna.sunshine.app.Utility;
 import com.example.joanna.sunshine.app.data.WeatherContract;
 
@@ -27,14 +34,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Vector;
 
-/**
- * Created by joanna on 30/06/16.
- */
-public class SunshineService extends IntentService {
+public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
+    public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
+    // Interval at which to sync with the weather, in seconds.
+    // 60 seconds (1 minute) * 180 = 3 hours
+    public static final int SYNC_INTERVAL = 60 * 180;
+    public static final int SYNC_FLEXTIME = SYNC_INTERVAL/3;
 
-    private final String LOG_TAG = SunshineService.class.getSimpleName();
-    public  static final String LOCATION_QUERY_EXTRA = "lqe";
-
+    public SunshineSyncAdapter(Context context, boolean autoInitialize) {
+        super(context, autoInitialize);
+    }
 
     /**
      * Helper method to handle insertion of a new location in the weather database.
@@ -49,7 +58,7 @@ public class SunshineService extends IntentService {
         // Students: First, check if the location with this city name exists in the db
         // If it exists, return the current ID
         // Otherwise, insert it using the content resolver and the base URI
-        Cursor cursor = this.getContentResolver().query(
+        Cursor cursor = getContext().getContentResolver().query(
                 WeatherContract.LocationEntry.CONTENT_URI,
                 new String[] {WeatherContract.LocationEntry._ID},
                 WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING + " = ? ",
@@ -66,7 +75,7 @@ public class SunshineService extends IntentService {
             contentValues.put(WeatherContract.LocationEntry.COLUMN_CITY_NAME, cityName);
             contentValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LAT, lat);
             contentValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LONG, lon);
-            Uri locationUri = this.getContentResolver().insert(WeatherContract.LocationEntry.CONTENT_URI, contentValues);
+            Uri locationUri = getContext().getContentResolver().insert(WeatherContract.LocationEntry.CONTENT_URI, contentValues);
             location_id = ContentUris.parseId(locationUri);
         }
         cursor.close();
@@ -206,7 +215,7 @@ public class SunshineService extends IntentService {
             // add to database
             if ( cVVector.size() > 0 ) {
                 // Student: call bulkInsert to add the weatherEntries to the database here
-                int rowsInserted = this.getContentResolver().bulkInsert(
+                int rowsInserted = getContext().getContentResolver().bulkInsert(
                         WeatherContract.WeatherEntry.CONTENT_URI,
                         cVVector.toArray(new ContentValues[cVVector.size()])
                 );
@@ -217,7 +226,7 @@ public class SunshineService extends IntentService {
             Uri weatherForLocationUri = WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(
                     locationSetting, System.currentTimeMillis());
 
-            Log.d(LOG_TAG, "Sunshine Service Complete. " + cVVector.size() + " Inserted");
+            Log.d(LOG_TAG, "Sunshine Sync Adapter Complete. " + cVVector.size() + " Inserted");
         } catch (JSONException e) {
             Log.e(LOG_TAG, e.getMessage(), e);
             e.printStackTrace();
@@ -225,117 +234,191 @@ public class SunshineService extends IntentService {
         return null;
     }
 
-    public SunshineService() {
-        super("SunshineService");
-    }
-
     @Override
-    protected void onHandleIntent(Intent intent) {
+    public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
+        Log.d(LOG_TAG, "Sync Starting.");
+        String locationQuery = Utility.getPreferredLocation(getContext());
 
-        if (intent != null && intent.hasExtra(LOCATION_QUERY_EXTRA)) {
-            String locationQuery = intent.getStringExtra(LOCATION_QUERY_EXTRA);
+        // These two need to be declared outside the try/catch
+        // so that they can be closed in the finally block.
+        HttpURLConnection urlConnection = null;
+        BufferedReader reader = null;
 
-            // These two need to be declared outside the try/catch
-            // so that they can be closed in the finally block.
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
+        // Will contain the raw JSON response as a string.
+        String forecastJsonStr = null;
 
-            // Will contain the raw JSON response as a string.
-            String forecastJsonStr = null;
+        String format = "json";
+        String units = "metric";
+        int numDays = 14;
 
-            String format = "json";
-            String units = "metric";
-            int numDays = 14;
+        try {
+            // Construct the URL for the OpenWeatherMap query
+            // Possible parameters are avaiable at OWM's forecast API page, at
+            // http://openweathermap.org/API#forecast
+            final String FORECAST_BASE_URL =
+                    "http://api.openweathermap.org/data/2.5/forecast/daily?";
+            final String QUERY_PARAM = "q";
+            final String FORMAT_PARAM = "mode";
+            final String UNITS_PARAM = "units";
+            final String DAYS_PARAM = "cnt";
+            final String APPID_PARAM = "APPID";
 
-            try {
-                // Construct the URL for the OpenWeatherMap query
-                // Possible parameters are avaiable at OWM's forecast API page, at
-                // http://openweathermap.org/API#forecast
-                final String FORECAST_BASE_URL =
-                        "http://api.openweathermap.org/data/2.5/forecast/daily?";
-                final String QUERY_PARAM = "q";
-                final String FORMAT_PARAM = "mode";
-                final String UNITS_PARAM = "units";
-                final String DAYS_PARAM = "cnt";
-                final String APPID_PARAM = "APPID";
+            Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+                    .appendQueryParameter(QUERY_PARAM, locationQuery)
+                    .appendQueryParameter(FORMAT_PARAM, format)
+                    .appendQueryParameter(UNITS_PARAM, units)
+                    .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                    .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
+                    .build();
 
-                Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
-                        .appendQueryParameter(QUERY_PARAM, locationQuery)
-                        .appendQueryParameter(FORMAT_PARAM, format)
-                        .appendQueryParameter(UNITS_PARAM, units)
-                        .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
-                        .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
-                        .build();
+            URL url = new URL(builtUri.toString());
 
-                URL url = new URL(builtUri.toString());
+            // Create the request to OpenWeatherMap, and open the connection
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("GET");
+            urlConnection.connect();
 
-                // Create the request to OpenWeatherMap, and open the connection
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-
-                // Read the input stream into a String
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    return;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
-                    buffer.append(line + "\n");
-                }
-
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return;
-                }
-                forecastJsonStr = buffer.toString();
-            } catch (IOException e) {
-                Log.e(LOG_TAG, "Error ", e);
-                // If the code didn't successfully get the weather data, there's no point in attemping
-                // to parse it.
+            // Read the input stream into a String
+            InputStream inputStream = urlConnection.getInputStream();
+            StringBuffer buffer = new StringBuffer();
+            if (inputStream == null) {
+                // Nothing to do.
                 return;
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        Log.e(LOG_TAG, "Error closing stream", e);
-                    }
-                }
+            }
+            reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
+                // But it does make debugging a *lot* easier if you print out the completed
+                // buffer for debugging.
+                buffer.append(line + "\n");
             }
 
-            try {
-                getWeatherDataFromJson(forecastJsonStr, locationQuery);
-            } catch (JSONException e) {
-                Log.e(LOG_TAG, e.getMessage(), e);
-                e.printStackTrace();
+            if (buffer.length() == 0) {
+                // Stream was empty.  No point in parsing.
+                return;
             }
-            // This will only happen if there was an error getting or parsing the forecast.
+            forecastJsonStr = buffer.toString();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "Error ", e);
+            // If the code didn't successfully get the weather data, there's no point in attemping
+            // to parse it.
             return;
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (final IOException e) {
+                    Log.e(LOG_TAG, "Error closing stream", e);
+                }
+            }
+        }
+
+        try {
+            getWeatherDataFromJson(forecastJsonStr, locationQuery);
+        } catch (JSONException e) {
+            Log.e(LOG_TAG, e.getMessage(), e);
+            e.printStackTrace();
+        }
+        // This will only happen if there was an error getting or parsing the forecast.
+        return;
+
+    }
+
+    /**
+     * Helper method to have the sync adapter sync immediately
+     * @param context The context used to access the account service
+     */
+    public static void syncImmediately(Context context) {
+        Bundle bundle = new Bundle();
+        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        ContentResolver.requestSync(getSyncAccount(context),
+                context.getString(R.string.content_authority), bundle);
+    }
+
+    /**
+     * Helper method to get the fake account to be used with SyncAdapter, or make a new one
+     * if the fake account doesn't exist yet.  If we make a new account, we call the
+     * onAccountCreated method so we can initialize things.
+     *
+     * @param context The context used to access the account service
+     * @return a fake account.
+     */
+    public static Account getSyncAccount(Context context) {
+        // Get an instance of the Android account manager
+        AccountManager accountManager =
+                (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
+
+        // Create the account type and default account
+        Account newAccount = new Account(
+                context.getString(R.string.app_name), context.getString(R.string.sync_account_type));
+
+        // If the password doesn't exist, the account doesn't exist
+        if ( null == accountManager.getPassword(newAccount) ) {
+
+        /*
+         * Add the account and account type, no password or user data
+         * If successful, return the Account object, otherwise report an error.
+         */
+            if (!accountManager.addAccountExplicitly(newAccount, "", null)) {
+                return null;
+            }
+            /*
+             * If you don't set android:syncable="true" in
+             * in your <provider> element in the manifest,
+             * then call ContentResolver.setIsSyncable(account, AUTHORITY, 1)
+             * here.
+             */
+
+            onAccountCreated(newAccount, context);
+
+        }
+        return newAccount;
+    }
+
+    /**
+     * Helper method to schedule the sync adapter periodic execution
+     */
+    public static void configurePeriodicSync(Context context, int syncInterval, int flexTime) {
+        Account account = getSyncAccount(context);
+        String authority = context.getString(R.string.content_authority);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            // we can enable inexact timers in our periodic sync
+            SyncRequest request = new SyncRequest.Builder().
+                    syncPeriodic(syncInterval, flexTime).
+                    setSyncAdapter(account, authority).
+                    setExtras(new Bundle()).build();
+            ContentResolver.requestSync(request);
+        } else {
+            ContentResolver.addPeriodicSync(account,
+                    authority, new Bundle(), syncInterval);
         }
     }
 
-    public static class AlarmReceiver extends BroadcastReceiver {
-        private final String LOG_TAG = AlarmReceiver.class.getSimpleName();
+    private static void onAccountCreated(Account newAccount, Context context) {
+        /*
+         * Since we've created an account
+         */
+        SunshineSyncAdapter.configurePeriodicSync(context, SYNC_INTERVAL, SYNC_FLEXTIME);
 
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.v(LOG_TAG, "In OnReceive");
-            // Moved down here so we can a Broadcast receiver.
-            Intent sendIntent = new Intent(context, SunshineService.class);
-            sendIntent.putExtra(SunshineService.LOCATION_QUERY_EXTRA,
-                    Utility.getPreferredLocation(context));
-            context.startService(sendIntent);
-        }
+        /*
+         * Without calling setSyncAutomatically, our periodic sync will not be enabled.
+         */
+        ContentResolver.setSyncAutomatically(newAccount, context.getString(R.string.content_authority), true);
+
+        /*
+         * Finally, let's do a sync to get things started
+         */
+        syncImmediately(context);
     }
+
+    public static void initializeSyncAdapter(Context context) {
+        getSyncAccount(context);
+    }
+
 }

@@ -1,12 +1,10 @@
 package com.example.joanna.sunshine.app;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
@@ -23,7 +21,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import com.example.joanna.sunshine.app.data.WeatherContract;
-import com.example.joanna.sunshine.app.service.SunshineService;
+import com.example.joanna.sunshine.app.sync.SunshineSyncAdapter;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -115,7 +113,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
-//            updateWeather();
+            updateWeather();
             return true;
         }
 
@@ -208,17 +206,35 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
 //    }
 
     public void updateWeather() {
-        prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String location = prefs.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
+//        prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+//        String location = prefs.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
+
 //        FetchWeatherTask fetcher = new FetchWeatherTask(getActivity(), mForecastAdapter);
         // No Longer using an AsyncTask
 //        FetchWeatherTask fetcher = new FetchWeatherTask(getActivity());
 //        fetcher.execute(location);
+
         // Now Using a Service.
-        Intent intent = new Intent(getActivity(), SunshineService.class);
-        intent.putExtra(SunshineService.LOCATION_QUERY_EXTRA,
-                Utility.getPreferredLocation(getActivity()));
-        getActivity().startActivity(intent);
+//        Intent intent = new Intent(getActivity(), SunshineService.class);
+//        intent.putExtra(SunshineService.LOCATION_QUERY_EXTRA,
+//                Utility.getPreferredLocation(getActivity()));
+//        getActivity().startActivity(intent);
+
+
+        // Now using an Alarm Manager
+//        Intent receiverIntent = new Intent(getActivity(), SunshineService.AlarmReceiver.class);
+//        receiverIntent.putExtra(SunshineService.LOCATION_QUERY_EXTRA,
+//                Utility.getPreferredLocation(getActivity()));
+//
+//        PendingIntent pendingIntent = PendingIntent.getBroadcast(getActivity(), 0, receiverIntent, PendingIntent.FLAG_ONE_SHOT);
+//
+//        AlarmManager alarmManager = (AlarmManager) getActivity().getSystemService(Context.ALARM_SERVICE);
+//        alarmManager.set(AlarmManager.RTC_WAKEUP,
+//                System.currentTimeMillis() + 5000,
+//                pendingIntent);
+
+        //Now Syncing
+        SunshineSyncAdapter.syncImmediately(getActivity());
     }
 
     // Loader Callback Methods
