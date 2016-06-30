@@ -24,9 +24,15 @@ public class DetailActivity extends AppCompatActivity {
 //                        .setAction("Action", null).show();
 //            }
 //        });
+        Bundle arguments = new Bundle();
+        arguments.putParcelable(DetailActivityFragment.DETAIL_URI, getIntent().getData());
+        DetailActivityFragment fragment = new DetailActivityFragment();
+        fragment.setArguments(arguments);
+
+//                    add(R.id.weather_detail_container, new DetailActivityFragment()).
         if ( savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction().
-                    add(R.id.weather_detail_container, new DetailActivityFragment()).
+                    add(R.id.weather_detail_container, fragment).
                     commit();
         }
 
