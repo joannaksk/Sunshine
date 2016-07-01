@@ -333,7 +333,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
             }
             forecastJsonStr = buffer.toString();
         } catch (IOException e) {
-            Log.e(LOG_TAG, "Error ", e);
+            Log.e(LOG_TAG, "Error IO Exception", e);
             // If the code didn't successfully get the weather data, there's no point in attemping
             // to parse it.
             return;

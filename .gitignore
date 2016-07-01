@@ -9,3 +9,4 @@
 .idea/
 app/libs/
 .directory
+/app/build.gradle

@@ -5,6 +5,7 @@
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/sunshine_blue</item>
         <item name="colorPrimaryDark">@color/sunshine_dark_blue</item>
+        <item name="colorAccent">@color/sunshine_blue</item>
         <!--<item name="colorAccent">@color/colorAccent</item>-->
     </style>
 
