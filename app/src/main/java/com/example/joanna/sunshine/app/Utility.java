@@ -52,7 +52,6 @@ public class Utility {
         } else {
             temp = temperature;
         }
-//        return String.format("%.0f", temp);
         return context.getString(R.string.format_temperature, temp);
     }
 
@@ -112,11 +111,6 @@ public class Utility {
     public static String getDayName(Context context, long dateInMillis) {
         // If the date is today, return the localized version of "Today" instead of the actual
         // day name.
-
-//        Time t = new Time();
-//        t.setToNow();
-//        int julianDay = Time.getJulianDay(dateInMillis, t.gmtoff);
-//        int currentJulianDay = Time.getJulianDay(System.currentTimeMillis(), t.gmtoff);
 
         // Because Time is depracated
         Calendar calendar = Calendar.getInstance();

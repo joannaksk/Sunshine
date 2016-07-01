@@ -10,25 +10,16 @@ import android.view.MenuItem;
 import com.example.joanna.sunshine.app.sync.SunshineSyncAdapter;
 
 public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback {
-    private final String FORECASTFRAGMENT_TAG = "FFTAG";
     private static final String DETAILFRAGMENT_TAG = "DFTAG";
     private boolean mTwoPane;
-
     private String mLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-//        setSupportActionBar(toolbar);
         mLocation = Utility.getPreferredLocation(this);
 
-//        if (savedInstanceState == null) {
-//            getSupportFragmentManager().beginTransaction()
-//                    .add(0, new ForecastFragment(), FORECASTFRAGMENT_TAG)
-//                    .commit();
-//        }
         if (findViewById(R.id.weather_detail_container) != null) {
             // The detail container view will be present only in the large-screen layouts
             // (res/layout-sw600dp). If this view is present, then the activity should be
@@ -49,15 +40,6 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
 
         final ForecastFragment ff = (ForecastFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_forecast);
 
-//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-//        fab.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-////                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-////                        .setAction("Action", null).show();
-//                ff.updateWeather();
-//            }
-//        });
         ff.setUseTodayLayout(!mTwoPane);
 
         SunshineSyncAdapter.initializeSyncAdapter(this);
@@ -81,29 +63,8 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
         }
-//        if (id == R.id.action_show_location) {
-//            openPreferredLocation();
-//        }
-
         return super.onOptionsItemSelected(item);
     }
-
-//    public void openPreferredLocation() {
-//        Intent intent = new Intent(Intent.ACTION_VIEW);
-//
-//        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-//        String location = prefs.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
-//
-//        Uri geoLocation = Uri.parse("geo:0,0").buildUpon().
-//                appendQueryParameter("q", location).
-//                build();
-//
-//        intent.setData(geoLocation);
-//
-//        if (intent.resolveActivity(getPackageManager()) != null) {
-//            startActivity(intent);
-//        }
-//    }
 
     @Override
     protected void onResume() {
@@ -112,7 +73,6 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         String location = Utility.getPreferredLocation( this );
         // update the location in our second pane using the fragment manager
         if (location != null && !location.equals(mLocation)) {
-//            ForecastFragment ff = (ForecastFragment)getSupportFragmentManager().findFragmentByTag(FORECASTFRAGMENT_TAG);
             ForecastFragment ff = (ForecastFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_forecast);
             if ( null != ff ) {
                 ff.onLocationChanged();

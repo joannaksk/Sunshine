@@ -82,34 +82,6 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     private TextView mWindView;
     private TextView mPressureView;
 
-//    ViewHolder viewHolder;
-//
-//    /**
-//     * Cache of the children views for a forecast list item.
-//     */
-//    public static class ViewHolder {
-//        public final ImageView iconView;
-//        public final TextView dateView;
-//        public final TextView descriptionView;
-//        public final TextView highTempView;
-//        public final TextView lowTempView;
-//        public final TextView humidityView;
-//        public final TextView windView;
-//        public final TextView pressureView;
-//
-//        public ViewHolder(View view) {
-//            iconView = (ImageView) view.findViewById(R.id.detail_icon);
-//            dateView = (TextView) view.findViewById(R.id.detail_date);
-//            descriptionView = (TextView) view.findViewById(R.id.detail_forecast);
-//            highTempView = (TextView) view.findViewById(R.id.detail_highTemp);
-//            lowTempView = (TextView) view.findViewById(R.id.detail_lowTemp);
-//            humidityView = (TextView) view.findViewById(R.id.detail_humidity);
-//            windView = (TextView) view.findViewById(R.id.detail_wind);
-//            pressureView = (TextView) view.findViewById(R.id.detail_pressure);
-//        }
-//    }
-
-
     public DetailActivityFragment() {
         setHasOptionsMenu(true);
     }
@@ -131,11 +103,6 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         }
 
         Intent intent = getActivity().getIntent();
-//        if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-//            forecast = intent.getStringExtra(Intent.EXTRA_TEXT);
-//            TextView textView = (TextView) rootView.findViewById(R.id.detail_text);
-//            textView.setText(forecast);
-//        }
         if (intent != null) {
             forecast = intent.getDataString();
         }
@@ -180,21 +147,7 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Log.v(LOG_TAG, "In onCreateLoader");
-//        Intent intent = getActivity().getIntent();
-//        if (intent == null || intent.getData() == null) {
-//            return null;
-//        }
-//
-//        // Now create and return a CursorLoader that will take care of
-//        // creating a Cursor for the data being displayed.
-//        return new CursorLoader(
-//                getActivity(),
-//                intent.getData(),
-//                DETAIL_COLUMNS,
-//                null,
-//                null,
-//                null
-//        );
+
         if ( null != mUri ) {
             // Now create and return a CursorLoader that will take care of
             // creating a Cursor for the data being displayed.
@@ -228,11 +181,6 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         String low = Utility.formatTemperature(getActivity(), data.getDouble(COL_WEATHER_MIN_TEMP), isMetric);
         forecast = String.format("%s - %s - %s/%s", dateString, weatherDescription, high, low);
 
-//        TextView textView = (TextView)getView().findViewById(R.id.detail_text);
-//        textView.setText(forecast);
-
-
-//        mIconView.setImageResource(R.mipmap.ic_launcher);
         mIconView.setImageResource(Utility.getArtResourceForWeatherCondition(weatherId));
 
         long date = data.getLong(COL_WEATHER_DATE);
@@ -242,7 +190,6 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         mDateView.setText(dateText);
 
         mDescriptionView.setText(weatherDescription);
-
 
         // Set the Content Description for icons so Talkback can read it out.
         mIconView.setContentDescription(weatherDescription);
